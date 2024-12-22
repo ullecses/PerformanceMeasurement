@@ -22,20 +22,13 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Thread)  // Each thread gets its own instance of the state (e.g., student)
 public class ReflectionBenchmark {
 
-    // A record class to represent a Student with 'name' and 'surname'
-    record Student(String name, String surname) {}
+    private static final String NAME = "name";
 
     // Instance variables for benchmarking
     private Student student;  // The student object
     private Method method;  // Method object for reflection-based invocation
     private MethodHandle methodHandle;  // MethodHandle for dynamic method invocation
     private StudentInterface lambdaMetafactory;  // LambdaMetafactory for generating a lambda-based method invocation
-
-    // A functional interface for method invocation via LambdaMetafactory
-    @FunctionalInterface
-    interface StudentInterface {
-        String getName(Student student);  // Method to get the student's name
-    }
 
     // This method is executed before the benchmarks to initialize necessary resources
     @Setup
@@ -44,12 +37,12 @@ public class ReflectionBenchmark {
         student = new Student("Alexander", "Biryukov");
 
         // Set up reflection: get the 'name' method from the Student class and make it accessible
-        method = Student.class.getMethod("name");
+        method = Student.class.getMethod(NAME);
         method.setAccessible(true);
 
         // Set up MethodHandles: dynamic method invocation for the 'name' method
         MethodHandles.Lookup lookup = MethodHandles.lookup();
-        methodHandle = lookup.findVirtual(Student.class, "name", MethodType.methodType(String.class));
+        methodHandle = lookup.findVirtual(Student.class, NAME, MethodType.methodType(String.class));
 
         // Set up LambdaMetafactory: create a lambda expression that calls the 'name' method dynamically
         CallSite callSite = LambdaMetafactory.metafactory(
@@ -89,5 +82,14 @@ public class ReflectionBenchmark {
     public void lambdaMetafactory(Blackhole bh) {
         String name = lambdaMetafactory.getName(student);  // Lambda invocation
         bh.consume(name);  // Consuming the result to prevent optimization
+    }
+
+    // A record class to represent a Student with 'name' and 'surname'
+    record Student(String name, String surname) {}
+
+    // A functional interface for method invocation via LambdaMetafactory
+    @FunctionalInterface
+    interface StudentInterface {
+        String getName(Student student);  // Method to get the student's name
     }
 }
